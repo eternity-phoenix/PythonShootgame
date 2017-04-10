@@ -1,0 +1,2 @@
+# PythonShootgame
+simple shoot pygame 
