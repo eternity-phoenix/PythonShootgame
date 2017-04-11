@@ -34,14 +34,25 @@ pygame.image.load(filename) 用于加载指定图像，并且返回一个 pygame
 移动出屏幕后删除敌机
 敌机被子弹击中效果处理
 '''
+
+# pygame 坐标系为左上角原点,右为X正向,下为Y正向
+# cocos则是坐标系为左下角原点,右为X正向,上为Y正向
 import pygame
+from sys import exit
+from entity import Player, Bullet, Enemy, enemy1_rect
+from constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from random import randint
+
+
+
+
 
 # 1. 初始化 pygame
 pygame.init()
 
 #2. 设置游戏界面大小、背景图片及标题
 # 游戏界面像素大小
-screen = pygame.display.set_mode((480, 700))
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # 游戏界面标题
 pygame.display.set_caption('飞机大战')
@@ -52,26 +63,67 @@ background = pygame.image.load('resources/image/background.png').convert_alpha()
 # Game Over 背景图
 game_over = pygame.image.load('resources/image/gameover.png').convert_alpha()
 
-# 飞机图片 
-plane_img = pygame.image.load('resources/image/shoot.png')
 
-# 截取玩家飞机图片
-player = plane_img.subsurface(pygame.Rect(0, 99, 102, 126))
+player = Player()
 
+enemies1 = pygame.sprite.Group()
+
+# 存储被击毁的飞机，用来渲染击毁动画
+enemies_down = pygame.sprite.Group()
+
+# 初始化敌机生成频率
+enemy_frequency = 0
+
+# 玩家飞机被击中后的效果处理
+player_down_index = 16
+
+# 初始化分数
+score = 0
+
+# 游戏循环帧率设置
+clock = pygame.time.Clock()
+
+# 判断游戏循环退出的参数
+running = True
+
+# 游戏主循环
 #3. 游戏主循环内需要处理游戏界面的初始化、更新及退出
-while True:
-     # 初始化游戏屏幕
-     screen.fill(0)
-     screen.blit(background, (0, 0))
+while running:
+    # 控制游戏最大帧率为 60
+    clock.tick(60)
 
-     # 显示玩家飞机在位置[200, 600]
-     screen.blit(player, [200, 600])
+    player.update()
 
-     # 更新屏幕
-     pygame.display.update()
+    # 生成敌机，需要控制生成频率
+    if enemy_frequency % 50 == 0:
+        enemy_pos = [randint(0, SCREEN_WIDTH - enemy1_rect.width), 0]
+        enemy1 = Enemy(init_pos=enemy_pos)
+        enemies1.add(enemy1)
+    enemy_frequency += 1
+    if enemy_frequency >= 100:
+        enemy_frequency = 0
 
-     # 游戏退出事件
-     for event in pygame.event.get():
-         if event.type == pygame.QUIT:
-             pygame.quit()
-             exit()
+    for enemy in enemies1:
+        enemy.update(player, enemies1, enemies_down)
+
+    # 初始化游戏屏幕
+    screen.fill(0)
+    screen.blit(background, (0, 0))
+
+    # 绘制玩家飞机
+    if not player.is_hit:
+        screen.blit(player.image[player.img_index], player.rect)
+    
+    # 显示子弹
+    player.bullets.draw(screen)
+    # 显示敌机
+    enemies1.draw(screen)
+
+    # 更新屏幕
+    pygame.display.update()
+
+    # 游戏退出事件
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            exit()

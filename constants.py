@@ -1,0 +1,3 @@
+# 设置游戏屏幕大小
+SCREEN_WIDTH = 480
+SCREEN_HEIGHT = 700
