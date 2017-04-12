@@ -39,9 +39,11 @@ pygame.image.load(filename) 用于加载指定图像，并且返回一个 pygame
 # cocos则是坐标系为左下角原点,右为X正向,上为Y正向
 import pygame
 from sys import exit
-from entity import Player, Bullet, Enemy, enemy1_rect
+from entity import Player, Bullet, Enemy
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from random import randint
+from pygame import K_UP, K_DOWN, K_LEFT, K_RIGHT,\
+    K_a, K_s, K_d, K_w
 
 
 
@@ -66,7 +68,7 @@ game_over = pygame.image.load('resources/image/gameover.png').convert_alpha()
 
 player = Player()
 
-enemies1 = pygame.sprite.Group()
+enemies = pygame.sprite.Group()
 
 # 存储被击毁的飞机，用来渲染击毁动画
 enemies_down = pygame.sprite.Group()
@@ -96,15 +98,14 @@ while running:
 
     # 生成敌机，需要控制生成频率
     if enemy_frequency % 50 == 0:
-        enemy_pos = [randint(0, SCREEN_WIDTH - enemy1_rect.width), 0]
-        enemy1 = Enemy(init_pos=enemy_pos)
-        enemies1.add(enemy1)
+        enemies.add(Enemy())
     enemy_frequency += 1
     if enemy_frequency >= 100:
         enemy_frequency = 0
 
-    for enemy in enemies1:
-        enemy.update(player, enemies1, enemies_down)
+    for enemy in enemies:
+        enemy.update(player, enemies, enemies_down)
+    
 
     # 初始化游戏屏幕
     screen.fill(0)
@@ -113,11 +114,39 @@ while running:
     # 绘制玩家飞机
     if not player.is_hit:
         screen.blit(player.image[player.img_index], player.rect)
+    else:
+        # 玩家飞机被击中后的效果处理
+        player.img_index = player_down_index // 8
+        screen.blit(player.image[player.img_index], player.rect)
+        player_down_index += 1
+        if player_down_index > 47:
+            # 击中效果处理完后游戏结束
+            running = False
+        
+    # 敌机被子弹击中效果显示
+    for enemy_down in enemies_down:
+        if enemy_down.down_index > 7:
+            enemies_down.remove(enemy_down)
+            score += 1000
+            continue
+        screen.blit(enemy_down.down_imgs[enemy_down.down_index // 2], enemy_down.rect)
+        enemy_down.down_index += 1
     
+     # 绘制得分
+    score_font = pygame.font.Font(None, 36)
+    score_text = score_font.render(
+        str(score),
+        True,
+        (128, 128, 128)
+    )
+    text_rect = score_text.get_rect()
+    text_rect.topleft = [10, 10]
+    screen.blit(score_text, text_rect)
+
     # 显示子弹
     player.bullets.draw(screen)
     # 显示敌机
-    enemies1.draw(screen)
+    enemies.draw(screen)
 
     # 更新屏幕
     pygame.display.update()
@@ -127,3 +156,33 @@ while running:
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
+    
+    # 获取键盘事件（上下左右按键）
+    key_pressed = pygame.key.get_pressed()
+
+    # 处理键盘事件（移动飞机的位置）
+    if key_pressed[K_w] or key_pressed[K_UP]:
+        player.moveUp()
+    if key_pressed[K_s] or key_pressed[K_DOWN]:
+        player.moveDown()
+    if key_pressed[K_a] or key_pressed[K_LEFT]:
+        player.moveLeft()
+    if key_pressed[K_d] or key_pressed[K_RIGHT]:
+        player.moveRight()
+
+# 游戏 Game Over 后显示最终得分
+font = pygame.font.Font(None, 48)
+text = font.render('Score: '+ str(score), True, (255, 0, 0))
+text_rect = text.get_rect()
+text_rect.centerx = screen.get_rect().centerx
+text_rect.centery = screen.get_rect().centery
+screen.blit(game_over, (0, 0))
+screen.blit(text, text_rect)
+
+# 显示得分并处理游戏退出
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            exit()
+    pygame.display.update()
