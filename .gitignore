@@ -1,2 +1,4 @@
 #ignore txt File
 *.txt
+#ignore __pycache__
+__pycache__
